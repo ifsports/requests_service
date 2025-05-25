@@ -3,6 +3,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from shared.exceptions import NotFound
+
 import uuid
 
 from requests.models.request import RequestStatusEnum, Request, RequestsResponse, RequestsRequest
@@ -37,7 +39,7 @@ def create_request(request_in: RequestsRequest,
 def details_request(request_id: uuid.UUID,
                    db: Session = Depends(get_db)) -> RequestsResponse:
 
-    request: Request = db.query(Request).get(request_id)
+    request: Request = find_by_id(request_id, db)
 
     return request
 
@@ -46,7 +48,8 @@ def details_request(request_id: uuid.UUID,
 def approve_request(request_id: uuid.UUID,
                    db: Session = Depends(get_db)) -> RequestsResponse:
 
-    request: Request = db.query(Request).get(request_id)
+    request: Request = find_by_id(request_id, db)
+
     request.status = RequestStatusEnum.approved
 
     db.add(request)
@@ -60,11 +63,20 @@ def approve_request(request_id: uuid.UUID,
 def reject_request(request_id: uuid.UUID,
                    db: Session = Depends(get_db)) -> RequestsResponse:
 
-    request: Request = db.query(Request).get(request_id)
+    request: Request = find_by_id(request_id, db)
     request.status = RequestStatusEnum.rejected
 
     db.add(request)
     db.commit()
     db.refresh(request)
+
+    return request
+
+
+def find_by_id(request_id: uuid.UUID, db: Session) -> Request:
+    request: Request = db.query(Request).get(request_id)
+
+    if not request:
+        raise NotFound("Solicitação")
 
     return request
