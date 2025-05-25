@@ -33,8 +33,17 @@ def create_request(request_in: RequestsRequest,
     return request
 
 
+@router.get('/{request_id}', response_model=RequestsResponse, status_code=200)
+def details_request(request_id: uuid.UUID,
+                   db: Session = Depends(get_db)) -> RequestsResponse:
+
+    request: Request = db.query(Request).get(request_id)
+
+    return request
+
+
 @router.put('/approve/{request_id}', response_model=RequestsResponse, status_code=200)
-def create_request(request_id: uuid.UUID,
+def approve_request(request_id: uuid.UUID,
                    db: Session = Depends(get_db)) -> RequestsResponse:
 
     request: Request = db.query(Request).get(request_id)
@@ -48,7 +57,7 @@ def create_request(request_id: uuid.UUID,
 
 
 @router.put('/reject/{request_id}', response_model=RequestsResponse, status_code=200)
-def create_request(request_id: uuid.UUID,
+def reject_request(request_id: uuid.UUID,
                    db: Session = Depends(get_db)) -> RequestsResponse:
 
     request: Request = db.query(Request).get(request_id)

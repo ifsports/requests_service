@@ -13,10 +13,6 @@ from requests.routers import requests_router
 
 app = FastAPI()
 
-@app.get("/")
-def read_root() -> dict:
-    return {"Hello": "World"}
-
 app.include_router(requests_router.router)
 
 if __name__ == "__main__":
