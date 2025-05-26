@@ -8,7 +8,8 @@ from shared.exceptions import NotFound, Conflict
 
 import uuid
 
-from requests.models.request import RequestStatusEnum, Request, RequestsResponse, RequestsRequest
+from requests.models.request import (RequestStatusEnum, Request,
+                                     RequestsResponse, RequestsPutRequest, RequestsCreateRequest)
 from shared.dependencies import get_db
 
 router = APIRouter(
@@ -37,7 +38,7 @@ def get_requests(campus_code: str,
 
 @router.post('/', response_model=RequestsResponse, status_code=201)
 def create_request(campus_code: str,
-                   request_in: RequestsRequest,
+                   request_in: RequestsCreateRequest,
                    db: Session = Depends(get_db)) -> RequestsResponse:
 
     request = Request(**request_in.model_dump())
@@ -66,36 +67,24 @@ def details_request(campus_code: str,
     return request
 
 
-@router.put('/approve/{request_id}', response_model=RequestsResponse, status_code=200)
-def approve_request(campus_code: str,
-                    request_id: uuid.UUID,
-                    db: Session = Depends(get_db)) -> RequestsResponse:
+@router.put('/{request_id}', response_model=RequestsResponse, status_code=200)
+def update_request_reason_rejected(campus_code: str,
+                                   request_id: uuid.UUID,
+                                   request_in: RequestsPutRequest,
+                                   db: Session = Depends(get_db)) -> RequestsResponse:
 
     request: Request = find_by_id(request_id, campus_code, db)
 
     if request.status != RequestStatusEnum.pendent:
         raise Conflict("Conflito")
 
-    request.status = RequestStatusEnum.approved
+    if request_in.status:
+        request.status = request_in.status.value
 
-    db.add(request)
-    db.commit()
-    db.refresh(request)
-
-    return request
-
-
-@router.put('/reject/{request_id}', response_model=RequestsResponse, status_code=200)
-def reject_request(campus_code: str,
-                   request_id: uuid.UUID,
-                   db: Session = Depends(get_db)) -> RequestsResponse:
-
-    request: Request = find_by_id(request_id, campus_code, db)
-
-    if request.status != RequestStatusEnum.pendent:
-        raise Conflict("Conflito")
-
-    request.status = RequestStatusEnum.rejected
+    if request_in.reason_rejected:
+        if request.status != RequestStatusEnum.rejected:
+            raise Conflict("Conflito")
+        request.reason_rejected = request_in.reason_rejected
 
     db.add(request)
     db.commit()

@@ -42,12 +42,15 @@ class Request(Base):
         nullable=False
     )
 
-class RequestsRequest(BaseModel):
+class RequestsPutRequest(BaseModel):
+    reason_rejected: Optional[str] = None
+    status: RequestStatusEnum
+
+class RequestsCreateRequest(BaseModel):
     request_type: RequestTypeEnum
     team_id: uuid.UUID
     user_id: Optional[uuid.UUID] = None
     reason: Optional[str] = None
-    reason_rejected: Optional[str] = None
 
 
 class RequestsResponse(BaseModel):
