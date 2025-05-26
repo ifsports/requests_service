@@ -17,7 +17,11 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 
+# noinspection PyUnresolvedReferences
 from requests.models.request import Request
+# noinspection PyUnresolvedReferences
+from requests.models.campus import Campus
+
 
 from shared.database import Base
 target_metadata = Base.metadata
