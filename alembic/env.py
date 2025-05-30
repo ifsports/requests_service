@@ -5,6 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
+import os
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -17,7 +19,11 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 
+# noinspection PyUnresolvedReferences
 from requests.models.request import Request
+# noinspection PyUnresolvedReferences
+from requests.models.campus import Campus
+
 
 from shared.database import Base
 target_metadata = Base.metadata
@@ -26,6 +32,18 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+ACTUAL_DATABASE_URL_FOR_ALEMBIC_ENV = os.getenv("SQLALCHEMY_DATABASE_URL")
+
+if not ACTUAL_DATABASE_URL_FOR_ALEMBIC_ENV:
+    # Se esta variável não estiver definida, o Alembic não conseguirá conectar.
+    # Este erro ajudará a diagnosticar se o problema é a variável não estar chegando
+    # ao ambiente de execução do script Alembic.
+    raise ValueError(
+        "ALEMBIC ENV.PY ERRO: A variável de ambiente SQLALCHEMY_DATABASE_URL não está definida ou está vazia. "
+        "Verifique se ela foi corretamente injetada no contêiner pelo docker-compose.yml "
+        "e se o nome está correto no arquivo .env do orquestrador."
+    )
 
 
 def run_migrations_offline() -> None:
@@ -40,7 +58,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = ACTUAL_DATABASE_URL_FOR_ALEMBIC_ENV
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -59,8 +77,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    alembic_ini_config_section = config.get_section(config.config_ini_section, {})
+
+    alembic_ini_config_section['sqlalchemy.url'] = ACTUAL_DATABASE_URL_FOR_ALEMBIC_ENV
+
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        alembic_ini_config_section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

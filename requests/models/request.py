@@ -1,10 +1,12 @@
-from sqlalchemy import Column, String, Enum as SQLEnum, DateTime, UUID
+from sqlalchemy import Column, String, Enum as SQLEnum, DateTime, UUID, ForeignKey
 import uuid
 from enum import Enum as PyEnum
 from typing import Optional
 from datetime import datetime, timezone
 from shared.database import Base
 from pydantic import BaseModel
+
+from requests.models.campus import Campus
 
 
 class RequestTypeEnum(str, PyEnum):
@@ -26,6 +28,7 @@ class Request(Base):
     request_type: RequestTypeEnum = Column(SQLEnum(RequestTypeEnum), nullable=False)
     team_id: uuid.UUID = Column(UUID(as_uuid=True), nullable=False)
     user_id: Optional[uuid.UUID] = Column(UUID(as_uuid=True), nullable=True)
+    campus_code: str = Column(String, ForeignKey("campus.code"), nullable=False)
     reason: Optional[str] = Column(String, nullable=True)
     reason_rejected: Optional[str] = Column(String, nullable=True)
     status: RequestStatusEnum = Column(
@@ -39,18 +42,22 @@ class Request(Base):
         nullable=False
     )
 
-class RequestsRequest(BaseModel):
+class RequestsPutRequest(BaseModel):
+    reason_rejected: Optional[str] = None
+    status: RequestStatusEnum
+
+class RequestsCreateRequest(BaseModel):
     request_type: RequestTypeEnum
     team_id: uuid.UUID
     user_id: Optional[uuid.UUID] = None
     reason: Optional[str] = None
-    reason_rejected: Optional[str] = None
 
 
 class RequestsResponse(BaseModel):
     id: uuid.UUID
     team_id: uuid.UUID
     user_id: Optional[uuid.UUID] = None
+    campus_code: str
     request_type: RequestTypeEnum
     reason: Optional[str] = None
     reason_rejected: Optional[str] = None
