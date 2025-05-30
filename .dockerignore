@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile # Se você não quiser que o próprio Dockerfile seja copiado (geralmente não é necessário copiar)
+
+# Ambientes Virtuais Python
+.venv
+venv
+env
+*.env # Para arquivos .env locais do microsserviço, não o .env do orquestrador
+
+# Python cache e arquivos compilados
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+dist
+build
+*.egg
+
+# Arquivos de IDE e OS
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Arquivos de Teste e Cobertura (se não forem necessários na imagem final)
+.pytest_cache/
+.coverage
+htmlcov/
+# tests/  # Descomente se você não quiser incluir seus testes na imagem
+
+# Arquivos de Log
+*.log
+
+# Documentação (se não for necessária na imagem final)
+# README.md
+# docs/
