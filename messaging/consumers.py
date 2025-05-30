@@ -62,44 +62,62 @@ async def on_message(message: aio_pika.IncomingMessage) -> None:
 
 
 async def main_consumer():
-    connection = None
-    try:
-        connection = await aio_pika.connect_robust(RABBITMQ_URL)
+    retry_delay = 10
+    while True:
+        connection = None
+        try:
+            print(f"INFO: [requests_service] Consumidor: Tentando conectar ao RabbitMQ em {RABBITMQ_URL}...")
+            connection = await aio_pika.connect_robust(RABBITMQ_URL, timeout=15)  # Timeout para a tentativa de conexão
 
-        async with connection:
-            channel = await connection.channel()
+            async with connection:
+                channel = await connection.channel()
+                await channel.set_qos(prefetch_count=10)  # Seu prefetch_count
 
-            await channel.set_qos(prefetch_count=10)
+                exchange = await channel.declare_exchange(
+                    TEAMS_COMMANDS_EXCHANGE,
+                    aio_pika.ExchangeType.DIRECT,
+                    durable=True
+                )
 
-            exchange = await channel.declare_exchange(
-                TEAMS_COMMANDS_EXCHANGE,
-                aio_pika.ExchangeType.DIRECT,
-                durable=True
-            )
+                queue = await channel.declare_queue(
+                    REQUESTS_TEAM_CREATION_QUEUE,
+                    durable=True
+                )
 
-            queue = await channel.declare_queue(
-                REQUESTS_TEAM_CREATION_QUEUE,
-                durable=True
-            )
+                await queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_CREATION)
 
-            await queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_CREATION)
+                print(
+                    f"INFO: [requests_service] Consumidor: Conectado! '{REQUESTS_TEAM_CREATION_QUEUE}' esperando por mensagens com routing key '{ROUTING_KEY_TEAM_CREATION}'. Para sair pressione CTRL+C")
 
+                await queue.consume(on_message)
+
+                await asyncio.Future()
+
+        except aio_pika.exceptions.AMQPConnectionError as e:
             print(
-                f" [*] '{REQUESTS_TEAM_CREATION_QUEUE}' está esperando por mensagens com routing key '{ROUTING_KEY_TEAM_CREATION}'. Para sair pressione CTRL+C")
+                f"AVISO: [requests_service] Consumidor: Falha na conexão com RabbitMQ (AMQPConnectionError): {e}. Tentando novamente em {retry_delay} segundos...")
+        except ConnectionRefusedError as e:
+            print(
+                f"AVISO: [requests_service] Consumidor: Conexão recusada (ConnectionRefusedError): {e}. Provavelmente o RabbitMQ não está totalmente pronto. Tentando novamente em {retry_delay} segundos...")
+        except asyncio.CancelledError:
+            print("INFO: [requests_service] Consumidor: Tarefa cancelada. Encerrando consumidor.")
+            break
+        except Exception as e:
+            print(
+                f"ERRO: [requests_service] Consumidor: Erro inesperado: {e}. Tentando novamente em {retry_delay} segundos...")
+        finally:
+            if connection and not connection.is_closed:
+                print("INFO: [requests_service] Consumidor: Fechando conexão RabbitMQ no finally do loop.")
+                await connection.close()
 
-            await queue.consume(on_message)
+            current_task = asyncio.current_task()
+            if current_task and current_task.cancelled():
+                print(
+                    "INFO: [requests_service] Consumidor: Saindo do loop de reconexão devido ao cancelamento (detectado no finally).")
+                break
 
-            await asyncio.Future()
-
-    except aio_pika.exceptions.AMQPConnectionError as e:
-        print(f"Erro de conexão com RabbitMQ no consumidor: {e}")
-        await asyncio.sleep(5)
-    except KeyboardInterrupt:
-        print("Consumidor interrompido.")
-    finally:
-        if connection and not connection.is_closed:
-            await connection.close()
-        print("Conexão do consumidor fechada.")
+        print(f"INFO: [requests_service] Consumidor: Aguardando {retry_delay}s antes da próxima tentativa de conexão.")
+        await asyncio.sleep(retry_delay)
 
 
 if __name__ == "__main__":
