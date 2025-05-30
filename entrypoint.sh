@@ -1,6 +1,11 @@
+#!/bin/sh
+
 set -e
 
-echo "Database is reported as healthy by Docker Compose. Running migrations..."
+echo "Entrypoint: Database (db_requests) is reported as healthy. Running migrations for requests_service..."
+
 alembic upgrade head
+
+echo "Entrypoint: Migrations finished. Starting application (Uvicorn)..."
 
 exec "$@"
