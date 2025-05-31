@@ -19,6 +19,7 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
         campus_code_str = message_data.get("campus_code")
         request_type_str = message_data.get("request_type")
         user_id_str = message_data.get("user_id", None)
+        reason_str = message_data.get("reason")
 
         if not team_id_str:
             raise ValueError("'team_id' é obrigatório na mensagem")
@@ -85,6 +86,9 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
 
         if user_id_for_db:
             request_creation_data["user_id"] = user_id_for_db
+
+        if reason_str:
+            request_creation_data["reason"] = reason_str
 
         new_request = Request(**request_creation_data)
 
