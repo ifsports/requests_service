@@ -44,6 +44,9 @@ ROUTING_KEY_TEAM_DELETION = "team.deletion.requested"
 REQUESTS_MEMBER_DELETION_QUEUE = "requests_service.queue.member_deletion"
 ROUTING_KEY_MEMBER_DELETION = "member.removal.requested"
 
+REQUESTS_MEMBER_ADD_QUEUE = "requests_service.queue.member_add"
+ROUTING_KEY_MEMBER_ADD = "member.add.requested"
+
 
 async def on_message(message: aio_pika.IncomingMessage) -> None:
     async with message.process():
@@ -87,6 +90,7 @@ async def main_consumer():
                 )
 
 
+                # Fila para criar equipe
                 team_creation_queue = await channel.declare_queue(
                     REQUESTS_TEAM_CREATION_QUEUE,
                     durable=True
@@ -99,6 +103,7 @@ async def main_consumer():
                 await team_creation_queue.consume(on_message)
 
 
+                # Fila para deletar equipe
                 team_deletion_queue = await channel.declare_queue(
                     REQUESTS_TEAM_DELETION_QUEUE,
                     durable=True
@@ -111,6 +116,7 @@ async def main_consumer():
                 await team_deletion_queue.consume(on_message)
 
 
+                # Fila para deletar membro
                 member_deletion_queue = await channel.declare_queue(
                     REQUESTS_MEMBER_DELETION_QUEUE,
                     durable=True
@@ -121,6 +127,19 @@ async def main_consumer():
                 print(f"INFO: ... '{REQUESTS_MEMBER_DELETION_QUEUE}' esperando por '{ROUTING_KEY_MEMBER_DELETION}'...")
 
                 await member_deletion_queue.consume(on_message)
+
+
+                # Fila para adicionar membro
+                member_add_queue = await channel.declare_queue(
+                    REQUESTS_MEMBER_ADD_QUEUE,
+                    durable=True
+                )
+
+                await member_add_queue.bind(exchange, routing_key=ROUTING_KEY_MEMBER_ADD)
+
+                print(f"INFO: ... '{REQUESTS_MEMBER_ADD_QUEUE}' esperando por '{ROUTING_KEY_MEMBER_ADD}'...")
+
+                await member_add_queue.consume(on_message)
 
 
                 await asyncio.Future()

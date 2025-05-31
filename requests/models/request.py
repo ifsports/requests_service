@@ -13,6 +13,7 @@ class RequestTypeEnum(str, PyEnum):
     approve_team = "approve_team"
     delete_team = "delete_team"
     remove_team_member = "remove_team_member"
+    add_team_member = "add_team_member"
 
 
 class RequestStatusEnum(str, PyEnum):
