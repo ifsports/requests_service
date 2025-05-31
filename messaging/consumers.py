@@ -41,6 +41,9 @@ ROUTING_KEY_TEAM_CREATION = "team.creation.requested"
 REQUESTS_TEAM_DELETION_QUEUE = "requests_service.queue.team_deletion"
 ROUTING_KEY_TEAM_DELETION = "team.deletion.requested"
 
+REQUESTS_MEMBER_DELETION_QUEUE = "requests_service.queue.member_deletion"
+ROUTING_KEY_MEMBER_DELETION = "member.removal.requested"
+
 
 async def on_message(message: aio_pika.IncomingMessage) -> None:
     async with message.process():
@@ -84,28 +87,40 @@ async def main_consumer():
                 )
 
 
-                creation_queue = await channel.declare_queue(
+                team_creation_queue = await channel.declare_queue(
                     REQUESTS_TEAM_CREATION_QUEUE,
                     durable=True
                 )
 
-                await creation_queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_CREATION)
+                await team_creation_queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_CREATION)
 
                 print(f"INFO: [requests_service] Consumidor: Conectado! '{REQUESTS_TEAM_CREATION_QUEUE}' esperando por mensagens com routing key '{ROUTING_KEY_TEAM_CREATION}'. Para sair pressione CTRL+C")
 
-                await creation_queue.consume(on_message)
+                await team_creation_queue.consume(on_message)
 
 
-                deletion_queue = await channel.declare_queue(
+                team_deletion_queue = await channel.declare_queue(
                     REQUESTS_TEAM_DELETION_QUEUE,
                     durable=True
                 )
 
-                await deletion_queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_DELETION)
+                await team_deletion_queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_DELETION)
 
                 print(f"INFO: ... '{REQUESTS_TEAM_DELETION_QUEUE}' esperando por '{ROUTING_KEY_TEAM_DELETION}'...")
 
-                await deletion_queue.consume(on_message)
+                await team_deletion_queue.consume(on_message)
+
+
+                member_deletion_queue = await channel.declare_queue(
+                    REQUESTS_MEMBER_DELETION_QUEUE,
+                    durable=True
+                )
+
+                await member_deletion_queue.bind(exchange, routing_key=ROUTING_KEY_MEMBER_DELETION)
+
+                print(f"INFO: ... '{REQUESTS_MEMBER_DELETION_QUEUE}' esperando por '{ROUTING_KEY_MEMBER_DELETION}'...")
+
+                await member_deletion_queue.consume(on_message)
 
 
                 await asyncio.Future()
