@@ -34,8 +34,12 @@ else:
 
 
 TEAMS_COMMANDS_EXCHANGE = "teams_commands_exchange"
+
 REQUESTS_TEAM_CREATION_QUEUE = "requests_service.queue.team_creation"
 ROUTING_KEY_TEAM_CREATION = "team.creation.requested"
+
+REQUESTS_TEAM_DELETION_QUEUE = "requests_service.queue.team_deletion"
+ROUTING_KEY_TEAM_DELETION = "team.deletion.requested"
 
 
 async def on_message(message: aio_pika.IncomingMessage) -> None:
@@ -67,11 +71,11 @@ async def main_consumer():
         connection = None
         try:
             print(f"INFO: [requests_service] Consumidor: Tentando conectar ao RabbitMQ em {RABBITMQ_URL}...")
-            connection = await aio_pika.connect_robust(RABBITMQ_URL, timeout=15)  # Timeout para a tentativa de conexão
+            connection = await aio_pika.connect_robust(RABBITMQ_URL, timeout=15)
 
             async with connection:
                 channel = await connection.channel()
-                await channel.set_qos(prefetch_count=10)  # Seu prefetch_count
+                await channel.set_qos(prefetch_count=10)
 
                 exchange = await channel.declare_exchange(
                     TEAMS_COMMANDS_EXCHANGE,
@@ -79,17 +83,30 @@ async def main_consumer():
                     durable=True
                 )
 
-                queue = await channel.declare_queue(
+
+                creation_queue = await channel.declare_queue(
                     REQUESTS_TEAM_CREATION_QUEUE,
                     durable=True
                 )
 
-                await queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_CREATION)
+                await creation_queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_CREATION)
 
-                print(
-                    f"INFO: [requests_service] Consumidor: Conectado! '{REQUESTS_TEAM_CREATION_QUEUE}' esperando por mensagens com routing key '{ROUTING_KEY_TEAM_CREATION}'. Para sair pressione CTRL+C")
+                print(f"INFO: [requests_service] Consumidor: Conectado! '{REQUESTS_TEAM_CREATION_QUEUE}' esperando por mensagens com routing key '{ROUTING_KEY_TEAM_CREATION}'. Para sair pressione CTRL+C")
 
-                await queue.consume(on_message)
+                await creation_queue.consume(on_message)
+
+
+                deletion_queue = await channel.declare_queue(
+                    REQUESTS_TEAM_DELETION_QUEUE,
+                    durable=True
+                )
+
+                await deletion_queue.bind(exchange, routing_key=ROUTING_KEY_TEAM_DELETION)
+
+                print(f"INFO: ... '{REQUESTS_TEAM_DELETION_QUEUE}' esperando por '{ROUTING_KEY_TEAM_DELETION}'...")
+
+                await deletion_queue.consume(on_message)
+
 
                 await asyncio.Future()
 
