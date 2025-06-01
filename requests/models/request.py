@@ -28,7 +28,7 @@ class Request(Base):
     id: uuid.UUID = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_type: RequestTypeEnum = Column(SQLEnum(RequestTypeEnum), nullable=False)
     team_id: uuid.UUID = Column(UUID(as_uuid=True), nullable=False)
-    user_id: Optional[uuid.UUID] = Column(UUID(as_uuid=True), nullable=True)
+    user_id: Optional[str] = Column(String, nullable=True)
     campus_code: str = Column(String, ForeignKey("campus.code"), nullable=False)
     reason: Optional[str] = Column(String, nullable=True)
     reason_rejected: Optional[str] = Column(String, nullable=True)
@@ -50,14 +50,14 @@ class RequestsPutRequest(BaseModel):
 class RequestsCreateRequest(BaseModel):
     request_type: RequestTypeEnum
     team_id: uuid.UUID
-    user_id: Optional[uuid.UUID] = None
+    user_id: Optional[str] = None
     reason: Optional[str] = None
 
 
 class RequestsResponse(BaseModel):
     id: uuid.UUID
     team_id: uuid.UUID
-    user_id: Optional[uuid.UUID] = None
+    user_id: Optional[str] = None
     campus_code: str
     request_type: RequestTypeEnum
     reason: Optional[str] = None
