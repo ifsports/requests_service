@@ -94,10 +94,8 @@ async def update_request_reason_rejected(campus_code: str,
 
     add_team_request_message_data = {
         "team_id": str(request.team_id),
-        "user_id": str(request.user_id),
         "campus_code": request.campus_code,
         "status": request.status.value,
-        "reason_rejected": request.reason_rejected,
     }
 
 
@@ -127,6 +125,7 @@ async def update_request_reason_rejected(campus_code: str,
 
     if request.request_type == RequestTypeEnum.add_team_member:
         add_team_request_message_data["request_type"] = RequestTypeEnum.add_team_member.value
+        add_team_request_message_data["user_id"] = str(request.user_id)
 
         await publish_team_remove_request(add_team_request_message_data)
 
@@ -139,6 +138,7 @@ async def update_request_reason_rejected(campus_code: str,
 
     if request.request_type == RequestTypeEnum.remove_team_member:
         add_team_request_message_data["request_type"] = RequestTypeEnum.remove_team_member.value
+        add_team_request_message_data["user_id"] = str(request.user_id)
 
         await publish_team_remove_request(add_team_request_message_data)
 
