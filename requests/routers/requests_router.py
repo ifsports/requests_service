@@ -23,6 +23,7 @@ router = APIRouter(
 @router.get('/', response_model=List[RequestsResponse])
 def get_requests(campus_code: str,
                  status: Optional[RequestStatusEnum] = Query(None, description="Filtrar solicitações por status"),
+                 request_type: Optional[RequestTypeEnum] = Query(None, description="Filtrar solicitações por tipo"),
                  db: Session = Depends(get_db)):
 
     campus = db.query(Campus).filter(Campus.code == campus_code).first()  # type: ignore
@@ -34,6 +35,9 @@ def get_requests(campus_code: str,
 
     if status:
         query = query.filter(Request.status == status.value)
+
+    if request_type:
+        query = query.filter(Request.request_type == request_type.value)
 
     return query.all()
 
