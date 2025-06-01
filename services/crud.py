@@ -38,15 +38,8 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
         except ValueError:
             raise ValueError(f"team_id '{team_id_str}' não é um UUID válido")
 
-        user_id_for_db = None
-        if user_id_str:
-            try:
-                user_id_for_db = uuid.UUID(user_id_str)
-            except ValueError:
-                raise ValueError(f"user_id '{user_id_str}' não é um UUID válido")
-
         print(
-            f"DB_SYNC: Processando request para team_id: {team_id_for_db}, request_type: {current_request_type.value}, user_id: {user_id_for_db}")
+            f"DB_SYNC: Processando request para team_id: {team_id_for_db}, request_type: {current_request_type.value}, user_id: {user_id_str}")
 
 
         filters = [
@@ -60,7 +53,7 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             if not user_id_str:
                 raise ValueError(
                     f"'user_id' é obrigatório para o tipo de requisição '{current_request_type.value}'")
-            filters.append(Request.user_id == user_id_for_db)
+            filters.append(Request.user_id == user_id_str)
 
         existing_pending_request: Request = db.query(Request).filter(*filters).first()
 
@@ -84,8 +77,8 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
                 message_data["created_at"].replace("Z", "+00:00")) if message_data.get("created_at") else datetime.now(timezone.utc)
         }
 
-        if user_id_for_db:
-            request_creation_data["user_id"] = user_id_for_db
+        if user_id_str:
+            request_creation_data["user_id"] = user_id_str
 
         if reason_str:
             request_creation_data["reason"] = reason_str
