@@ -1,15 +1,17 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from messaging.request_event_publisher import publish_team_creation_request, publish_team_remove_request
 from requests.models.campus import Campus
 from shared.exceptions import NotFound, Conflict
 
 import uuid
 
 from requests.models.request import (RequestStatusEnum, Request,
-                                     RequestsResponse, RequestsPutRequest, RequestsCreateRequest)
+                                     RequestsResponse, RequestsPutRequest, RequestsCreateRequest, RequestTypeEnum)
 from shared.dependencies import get_db
 
 router = APIRouter(
@@ -67,11 +69,11 @@ def details_request(campus_code: str,
     return request
 
 
-@router.put('/{request_id}', response_model=RequestsResponse, status_code=200)
-def update_request_reason_rejected(campus_code: str,
+@router.put('/{request_id}', status_code=202)
+async def update_request_reason_rejected(campus_code: str,
                                    request_id: uuid.UUID,
                                    request_in: RequestsPutRequest,
-                                   db: Session = Depends(get_db)) -> RequestsResponse:
+                                   db: Session = Depends(get_db)):
 
     request: Request = find_by_id(request_id, campus_code, db)
 
@@ -90,7 +92,66 @@ def update_request_reason_rejected(campus_code: str,
     db.commit()
     db.refresh(request)
 
-    return request
+    add_team_request_message_data = {
+        "team_id": str(request.team_id),
+        "user_id": str(request.user_id),
+        "campus_code": request.campus_code,
+        "status": request.status.value,
+        "reason_rejected": request.reason_rejected,
+    }
+
+
+    if request.request_type == RequestTypeEnum.approve_team:
+        add_team_request_message_data["request_type"] = RequestTypeEnum.approve_team.value
+
+        await publish_team_creation_request(add_team_request_message_data)
+
+        return {
+            "message": "Solicitação para criação de equipe atualizada!",
+            "team_id": request.team_id,
+            "campus_code": request.campus_code,
+        }
+
+
+    if request.request_type == RequestTypeEnum.delete_team:
+        add_team_request_message_data["request_type"] = RequestTypeEnum.delete_team.value
+
+        await publish_team_remove_request(add_team_request_message_data)
+
+        return {
+            "message": "Solicitação para remoção de equipe atualizada!",
+            "team_id": request.team_id,
+            "campus_code": request.campus_code,
+        }
+
+
+    if request.request_type == RequestTypeEnum.add_team_member:
+        add_team_request_message_data["request_type"] = RequestTypeEnum.add_team_member.value
+
+        await publish_team_remove_request(add_team_request_message_data)
+
+        return {
+            "message": "Solicitação para adição de membro atualizada!",
+            "team_id": request.team_id,
+            "user_id": request.user_id,
+            "campus_code": request.campus_code,
+        }
+
+    if request.request_type == RequestTypeEnum.remove_team_member:
+        add_team_request_message_data["request_type"] = RequestTypeEnum.remove_team_member.value
+
+        await publish_team_remove_request(add_team_request_message_data)
+
+        return {
+            "message": "Solicitação para remoção de membro atualizada!",
+            "team_id": request.team_id,
+            "user_id": request.user_id,
+            "campus_code": request.campus_code,
+        }
+
+    return {
+        "message": "Solicitação atualizada com sucesso!"
+    }
 
 
 def find_by_id(request_id: uuid.UUID, campus_code: str, db: Session) -> Request:
