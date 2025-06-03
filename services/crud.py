@@ -41,18 +41,30 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
         if current_request_type.value == "approve_team":
             competition_id_str = message_data.get("competition_id")
 
+            if not competition_id_str:
+                raise ValueError("'competition_id' é obrigatório para approve_team")
+
+            try:
+                competition_id_for_db = uuid.UUID(competition_id_str)
+            except ValueError:
+                raise ValueError(f"competition_id '{competition_id_str}' não é um UUID válido")
+
+
         elif current_request_type.value == "delete_team":
-            request_competition_id = db.query(Request).filter(Request.team_id == team_id_for_db,
-                                                              Request.campus_code == campus_code_str,
-                                                              Request.request_type == RequestTypeEnum.approve_team,
-                                                              Request.status == RequestStatusEnum.approved).first()
+            request_competition_id = db.query(Request).filter(
+                Request.team_id == team_id_for_db,
+                Request.campus_code == campus_code_str,
+                Request.request_type == RequestTypeEnum.approve_team,
+                Request.status == RequestStatusEnum.approved
+            ).first()
 
-            competition_id_str = request_competition_id.competition_id if request_competition_id else None
+            if not request_competition_id:
+                raise ValueError("Não foi possível encontrar uma aprovação prévia para esta equipe")
 
-        try:
-            competition_id_for_db = uuid.UUID(competition_id_str)
-        except ValueError:
-            raise ValueError(f"competition_id '{competition_id_str}' não é um UUID válido")
+            competition_id_for_db = request_competition_id.competition_id
+
+        else:
+            competition_id_for_db = None
 
         print(
             f"DB_SYNC: Processando request para team_id: {team_id_for_db}, request_type: {current_request_type.value}, user_id: {user_id_str}")
@@ -88,11 +100,13 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             "request_type": current_request_type,
             "team_id": team_id_for_db,
             "campus_code": campus_code_str,
-            "competition_id": competition_id_for_db,
             "status": RequestStatusEnum.pendent,
             "created_at": datetime.fromisoformat(
                 message_data["created_at"].replace("Z", "+00:00")) if message_data.get("created_at") else datetime.now(timezone.utc)
         }
+
+        if competition_id_for_db is not None:
+            request_creation_data["competition_id"] = competition_id_for_db
 
         if user_id_str:
             request_creation_data["user_id"] = user_id_str
