@@ -20,6 +20,7 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
         request_type_str = message_data.get("request_type")
         user_id_str = message_data.get("user_id", None)
         reason_str = message_data.get("reason")
+        competition_id_str = message_data.get("competition_id")
 
         if not team_id_str:
             raise ValueError("'team_id' é obrigatório na mensagem")
@@ -27,6 +28,8 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             raise ValueError("'campus_code' é obrigatório na mensagem")
         if not request_type_str:
             raise ValueError("'request_type' é obrigatório na mensagem")
+        if not competition_id_str:
+            raise ValueError("'competition_id' é obrigatório na mensagem")
 
         try:
             current_request_type = RequestTypeEnum(request_type_str)
@@ -37,6 +40,11 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             team_id_for_db = uuid.UUID(team_id_str)
         except ValueError:
             raise ValueError(f"team_id '{team_id_str}' não é um UUID válido")
+
+        try:
+            competition_id_for_db = uuid.UUID(competition_id_str)
+        except ValueError:
+            raise ValueError(f"competition_id '{competition_id_str}' não é um UUID válido")
 
         print(
             f"DB_SYNC: Processando request para team_id: {team_id_for_db}, request_type: {current_request_type.value}, user_id: {user_id_str}")
@@ -72,6 +80,7 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             "request_type": current_request_type,
             "team_id": team_id_for_db,
             "campus_code": campus_code_str,
+            "competition_id": competition_id_for_db,
             "status": RequestStatusEnum.pendent,
             "created_at": datetime.fromisoformat(
                 message_data["created_at"].replace("Z", "+00:00")) if message_data.get("created_at") else datetime.now(timezone.utc)

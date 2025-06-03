@@ -98,6 +98,7 @@ async def update_request_reason_rejected(campus_code: str,
         "team_id": str(request.team_id),
         "campus_code": request.campus_code,
         "status": request.status.value,
+        "competition_id": str(request.competition_id),
     }
 
 

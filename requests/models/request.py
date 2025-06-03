@@ -28,6 +28,7 @@ class Request(Base):
     id: uuid.UUID = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_type: RequestTypeEnum = Column(SQLEnum(RequestTypeEnum), nullable=False)
     team_id: uuid.UUID = Column(UUID(as_uuid=True), nullable=False)
+    competition_id: Optional[uuid.UUID] = Column(UUID(as_uuid=True), nullable=True)
     user_id: Optional[str] = Column(String, nullable=True)
     campus_code: str = Column(String, ForeignKey("campus.code"), nullable=False)
     reason: Optional[str] = Column(String, nullable=True)
