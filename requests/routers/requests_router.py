@@ -4,7 +4,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from messaging.request_event_publisher import publish_team_creation_request, publish_team_remove_request
+from messaging.request_event_publisher import publish_team_creation_request, publish_team_remove_request, \
+    publish_member_add_request, publish_member_remove_request
 from requests.models.campus import Campus
 from shared.exceptions import NotFound, Conflict
 
@@ -130,7 +131,7 @@ async def update_request_reason_rejected(campus_code: str,
         add_team_request_message_data["request_type"] = RequestTypeEnum.add_team_member.value
         add_team_request_message_data["user_id"] = str(request.user_id)
 
-        await publish_team_remove_request(add_team_request_message_data)
+        await publish_member_add_request(add_team_request_message_data)
 
         return {
             "message": "Solicitação para adição de membro atualizada!",
@@ -143,7 +144,7 @@ async def update_request_reason_rejected(campus_code: str,
         add_team_request_message_data["request_type"] = RequestTypeEnum.remove_team_member.value
         add_team_request_message_data["user_id"] = str(request.user_id)
 
-        await publish_team_remove_request(add_team_request_message_data)
+        await publish_member_remove_request(add_team_request_message_data)
 
         return {
             "message": "Solicitação para remoção de membro atualizada!",
