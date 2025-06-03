@@ -89,6 +89,8 @@ async def update_request_reason_rejected(campus_code: str,
         request.status = request_in.status.value
 
     if request_in.reason_rejected:
+        if request_in.status != RequestStatusEnum.rejected:
+            raise Conflict("Conflito")
         request.reason_rejected = request_in.reason_rejected
 
     db.add(request)
