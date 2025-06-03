@@ -20,7 +20,6 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
         request_type_str = message_data.get("request_type")
         user_id_str = message_data.get("user_id", None)
         reason_str = message_data.get("reason")
-        competition_id_str = message_data.get("competition_id")
 
         if not team_id_str:
             raise ValueError("'team_id' é obrigatório na mensagem")
@@ -28,8 +27,6 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             raise ValueError("'campus_code' é obrigatório na mensagem")
         if not request_type_str:
             raise ValueError("'request_type' é obrigatório na mensagem")
-        if not competition_id_str:
-            raise ValueError("'competition_id' é obrigatório na mensagem")
 
         try:
             current_request_type = RequestTypeEnum(request_type_str)
@@ -40,6 +37,17 @@ def create_team_request_in_db_sync(message_data: dict) -> dict:
             team_id_for_db = uuid.UUID(team_id_str)
         except ValueError:
             raise ValueError(f"team_id '{team_id_str}' não é um UUID válido")
+
+        if current_request_type.value == "approve_team":
+            competition_id_str = message_data.get("competition_id")
+
+        elif current_request_type.value == "delete_team":
+            request_competition_id = db.query(Request).filter(Request.team_id == team_id_for_db,
+                                                              Request.campus_code == campus_code_str,
+                                                              Request.request_type == RequestTypeEnum.approve_team,
+                                                              Request.status == RequestStatusEnum.approved).first()
+
+            competition_id_str = request_competition_id.competition_id if request_competition_id else None
 
         try:
             competition_id_for_db = uuid.UUID(competition_id_str)
