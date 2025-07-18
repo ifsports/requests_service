@@ -21,8 +21,6 @@ if config.config_file_name is not None:
 
 # noinspection PyUnresolvedReferences
 from requests.models.request import Request
-# noinspection PyUnresolvedReferences
-from requests.models.campus import Campus
 
 
 from shared.database import Base

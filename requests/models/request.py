@@ -6,8 +6,6 @@ from datetime import datetime, timezone
 from shared.database import Base
 from pydantic import BaseModel
 
-from requests.models.campus import Campus
-
 
 class RequestTypeEnum(str, PyEnum):
     approve_team = "approve_team"
@@ -30,7 +28,7 @@ class Request(Base):
     team_id: uuid.UUID = Column(UUID(as_uuid=True), nullable=False)
     competition_id: Optional[uuid.UUID] = Column(UUID(as_uuid=True), nullable=True)
     user_id: Optional[str] = Column(String, nullable=True)
-    campus_code: str = Column(String, ForeignKey("campus.code"), nullable=False)
+    campus_code: str = Column(String(100), nullable=False)
     reason: Optional[str] = Column(String, nullable=True)
     reason_rejected: Optional[str] = Column(String, nullable=True)
     status: RequestStatusEnum = Column(
