@@ -55,12 +55,20 @@ def details_request(request_id: uuid.UUID,
                     current_user: dict = Depends(get_current_user)) -> RequestsResponse:
 
     campus_code = current_user["campus"]
+    groups = current_user["groups"]
 
     request = find_by_id(request_id, campus_code, db)
 
     response = RequestsResponse.model_validate(request)
 
-    return response
+    if has_role(groups, "Organizador"):
+        return response
+
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="Você não tem permissão para visualizar essa solicitação."
+        )
 
 
 @router.put('/{request_id}', status_code=202)
