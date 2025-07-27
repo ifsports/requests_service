@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import Request as RequestObject
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -15,6 +16,8 @@ import uuid
 from requests.models.request import (RequestStatusEnum, Request,
                                      RequestsResponse, RequestsPutRequest, RequestsCreateRequest, RequestTypeEnum)
 from shared.dependencies import get_db
+
+from messaging.audit_publisher import generate_log_payload, run_async_audit, model_to_dict
 
 router = APIRouter(
     prefix='/api/v1/requests',
@@ -74,6 +77,7 @@ def details_request(request_id: uuid.UUID,
 @router.put('/{request_id}', status_code=202)
 async def update_request_reason_rejected(request_id: uuid.UUID,
                                          request_in: RequestsPutRequest,
+                                         request_object: RequestObject,
                                          db: Session = Depends(get_db),
                                          current_user: dict = Depends(get_current_user)):
 
@@ -84,6 +88,8 @@ async def update_request_reason_rejected(request_id: uuid.UUID,
 
     if request.status != RequestStatusEnum.pendent:
         raise Conflict("Conflito")
+
+    old_data = model_to_dict(request)
 
     if request_in.status:
         request.status = request_in.status
@@ -98,13 +104,39 @@ async def update_request_reason_rejected(request_id: uuid.UUID,
         db.commit()
         db.refresh(request)
 
+        log_payload = None
+        event_type = None
+
+        if old_data.get("status") != request.status.value:
+            if request.status == RequestStatusEnum.rejected:
+                event_type = "request.rejected"
+            elif request.status == RequestStatusEnum.approved:
+                event_type = "request.approved"
+        
+        if event_type:
+            new_data = model_to_dict(request)
+
+            log_payload = generate_log_payload(
+                event_type=event_type,
+                service_origin="requests_service",
+                entity_type="request",
+                entity_id=request.id,
+                operation_type="UPDATE",
+                campus_code=request.campus_code,
+                user_registration=current_user.get("matricula"),
+                request_object=request_object,
+                old_data=old_data,
+                new_data=new_data
+            )
+
+            run_async_audit(log_payload)
+
         add_team_request_message_data = {
             "team_id": str(request.team_id),
             "campus_code": request.campus_code,
             "status": request.status.value,
             "competition_id": str(request.competition_id),
         }
-
 
         if request.request_type == RequestTypeEnum.approve_team:
             add_team_request_message_data["request_type"] = RequestTypeEnum.approve_team.value
