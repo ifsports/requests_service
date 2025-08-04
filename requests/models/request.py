@@ -57,6 +57,7 @@ class RequestsResponse(BaseModel):
     id: uuid.UUID
     team_id: uuid.UUID
     user_id: Optional[str] = None
+    competition_id: Optional[uuid.UUID] = None
     campus_code: str
     request_type: RequestTypeEnum
     reason: Optional[str] = None
