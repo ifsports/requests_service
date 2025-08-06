@@ -23,39 +23,7 @@ O **Requests Service** é um serviço FastAPI responsável por gerenciar solicit
 - **PostgreSQL**: Banco de dados relacional
 - **Docker**: Containerização
 
-## Estrutura do Projeto
-
-```
-├── alembic/                 # Migrations do banco de dados
-├── messaging/               # Consumidores e produtores de mensagens
-├── requests/                # Módulo principal de requests
-│   ├── models/             # Modelos de dados
-│   └── routers/            # Rotas da API
-├── services/               # Serviços e lógica de negócio
-├── shared/                 # Utilitários compartilhados
-├── auth.py                 # Sistema de autenticação
-├── main.py                 # Aplicação principal
-└── Dockerfile              # Configuração do container
-```
-
-## Endpoints Principais
-
-- `GET /health` - Verificação de saúde do serviço
-- Rotas de requests (definidas em `requests/routers/`)
-
 ## Configuração
-
-### Variáveis de Ambiente
-
-- `JWT_SECRET_KEY`: Chave secreta para validação de tokens JWT
-- `SQLALCHEMY_DATABASE_URL`: URL de conexão com o banco de dados
-
-### Executando com Docker
-
-```bash
-docker build -t requests-service .
-docker run -p 8001:8001 requests-service
-```
 
 ## Health Check
 
